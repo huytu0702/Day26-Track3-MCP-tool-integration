@@ -1,0 +1,8 @@
+.venv/
+.npm-cache/
+__pycache__/
+.pytest_cache/
+.coverage
+htmlcov/
+implementation/lab.db
+*.pyc
