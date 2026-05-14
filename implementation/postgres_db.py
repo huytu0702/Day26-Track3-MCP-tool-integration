@@ -1,41 +1,30 @@
-import sqlite3
-from pathlib import Path
+import os
 from typing import Any
 
-from implementation.adapters import Filter, OutputLimit, Row, ValidationError
-from implementation.init_db import DB_PATH
+import psycopg
+from psycopg.rows import dict_row
 
-SUPPORTED_OPERATORS = {
-    "eq": "=",
-    "ne": "!=",
-    "gt": ">",
-    "gte": ">=",
-    "lt": "<",
-    "lte": "<=",
-    "like": "LIKE",
-}
-SUPPORTED_AGGREGATES = {"count", "avg", "sum", "min", "max"}
-MAX_LIMIT = OutputLimit.MAX
+from implementation.adapters import Filter, Row, ValidationError
+from implementation.db import SUPPORTED_AGGREGATES, SUPPORTED_OPERATORS, SQLiteAdapter
 
 
-class SQLiteAdapter:
-    def __init__(self, db_path: str | Path = DB_PATH) -> None:
-        self.db_path = Path(db_path)
+class PostgresAdapter(SQLiteAdapter):
+    def __init__(self, dsn: str | None = None) -> None:
+        self.dsn = dsn or os.environ.get("DATABASE_URL", "")
+        if not self.dsn:
+            raise ValidationError("DATABASE_URL is required for PostgreSQL")
 
-    def connect(self) -> sqlite3.Connection:
-        connection = sqlite3.connect(self.db_path)
-        connection.row_factory = sqlite3.Row
-        connection.execute("PRAGMA foreign_keys = ON")
-        return connection
+    def connect(self) -> psycopg.Connection[Any]:
+        return psycopg.connect(self.dsn, row_factory=dict_row)
 
     def list_tables(self) -> list[str]:
         with self.connect() as connection:
             rows = connection.execute("""
-                SELECT name
-                FROM sqlite_master
-                WHERE type = 'table'
-                  AND name NOT LIKE 'sqlite_%'
-                ORDER BY name
+                SELECT table_name AS name
+                FROM information_schema.tables
+                WHERE table_schema = 'public'
+                  AND table_type = 'BASE TABLE'
+                ORDER BY table_name
                 """).fetchall()
         return [row["name"] for row in rows]
 
@@ -43,21 +32,32 @@ class SQLiteAdapter:
         table_name = self.validate_table(table)
         with self.connect() as connection:
             rows = connection.execute(
-                f"PRAGMA table_info({self.quote(table_name)})"
+                """
+                SELECT
+                    column_name AS name,
+                    data_type AS type,
+                    is_nullable,
+                    column_default AS default_value
+                FROM information_schema.columns
+                WHERE table_schema = 'public'
+                  AND table_name = %s
+                ORDER BY ordinal_position
+                """,
+                [table_name],
             ).fetchall()
         return [
             {
                 "name": row["name"],
                 "type": row["type"],
-                "not_null": bool(row["notnull"]),
-                "default": row["dflt_value"],
-                "primary_key": bool(row["pk"]),
+                "not_null": row["is_nullable"] == "NO",
+                "default": row["default_value"],
+                "primary_key": False,
             }
             for row in rows
         ]
 
-    def get_database_schema(self) -> dict[str, list[Row]]:
-        return {table: self.get_table_schema(table) for table in self.list_tables()}
+    def table_columns(self, table: str) -> list[str]:
+        return [column["name"] for column in self.get_table_schema(table)]
 
     def search(
         self,
@@ -84,7 +84,7 @@ class SQLiteAdapter:
         column_sql = ", ".join(self.quote(column) for column in selected_columns)
         sql = (
             f"SELECT {column_sql} FROM {self.quote(table_name)}"
-            f"{where_sql}{order_sql} LIMIT ? OFFSET ?"
+            f"{where_sql}{order_sql} LIMIT %s OFFSET %s"
         )
 
         with self.connect() as connection:
@@ -99,20 +99,18 @@ class SQLiteAdapter:
             raise ValidationError("Insert values must not be empty")
 
         columns = [self.validate_column(table_name, column) for column in values]
-        placeholders = ", ".join("?" for _ in columns)
+        placeholders = ", ".join("%s" for _ in columns)
         column_sql = ", ".join(self.quote(column) for column in columns)
         sql = (
             f"INSERT INTO {self.quote(table_name)} "
-            f"({column_sql}) VALUES ({placeholders})"
+            f"({column_sql}) VALUES ({placeholders}) RETURNING *"
         )
 
         with self.connect() as connection:
-            cursor = connection.execute(sql, [values[column] for column in values])
-            row_id = cursor.lastrowid
-            connection.commit()
             row = connection.execute(
-                f"SELECT * FROM {self.quote(table_name)} WHERE id = ?", [row_id]
+                sql, [values[column] for column in values]
             ).fetchone()
+            connection.commit()
 
         if row is None:
             raise ValidationError("Inserted row could not be read back")
@@ -158,47 +156,6 @@ class SQLiteAdapter:
             rows = connection.execute(sql, parameters).fetchall()
         return [dict(row) for row in rows]
 
-    def validate_table(self, table: str) -> str:
-        if table not in self.list_tables():
-            raise ValidationError(f"Unknown table: {table}")
-        return table
-
-    def validate_columns(self, table: str, columns: list[str] | None) -> list[str]:
-        available_columns = self.table_columns(table)
-        if columns is None:
-            return available_columns
-        if not columns:
-            raise ValidationError("Columns must not be empty")
-        return [self.validate_column(table, column) for column in columns]
-
-    def validate_column(self, table: str, column: str) -> str:
-        if column not in self.table_columns(table):
-            raise ValidationError(f"Unknown column for {table}: {column}")
-        return column
-
-    def validate_metric(self, metric: str) -> str:
-        metric_name = metric.lower()
-        if metric_name not in SUPPORTED_AGGREGATES:
-            raise ValidationError(f"Unsupported aggregate metric: {metric}")
-        return metric_name
-
-    def validate_limit(self, limit: int) -> int:
-        if not isinstance(limit, int) or limit < 1 or limit > MAX_LIMIT:
-            raise ValidationError(f"Limit must be an integer between 1 and {MAX_LIMIT}")
-        return limit
-
-    def validate_offset(self, offset: int) -> int:
-        if not isinstance(offset, int) or offset < 0:
-            raise ValidationError("Offset must be a non-negative integer")
-        return offset
-
-    def table_columns(self, table: str) -> list[str]:
-        with self.connect() as connection:
-            rows = connection.execute(
-                f"PRAGMA table_info({self.quote(table)})"
-            ).fetchall()
-        return [row["name"] for row in rows]
-
     def build_where_clause(
         self, table: str, filters: list[Filter] | None
     ) -> tuple[str, list[Any]]:
@@ -219,22 +176,20 @@ class SQLiteAdapter:
                     raise ValidationError(
                         "Operator 'in' requires a non-empty list value"
                     )
-                placeholders = ", ".join("?" for _ in value)
+                placeholders = ", ".join("%s" for _ in value)
                 clauses.append(f"{self.quote(column)} IN ({placeholders})")
                 parameters.extend(value)
                 continue
 
             if operator not in SUPPORTED_OPERATORS:
                 raise ValidationError(f"Unsupported filter operator: {operator}")
-            clauses.append(f"{self.quote(column)} {SUPPORTED_OPERATORS[operator]} ?")
+            clauses.append(f"{self.quote(column)} {SUPPORTED_OPERATORS[operator]} %s")
             parameters.append(value)
 
         return f" WHERE {' AND '.join(clauses)}", parameters
 
-    def require_filter_value(self, item: Filter, key: str) -> Any:
-        if key not in item:
-            raise ValidationError(f"Filter is missing required key: {key}")
-        return item[key]
-
     def quote(self, identifier: str) -> str:
         return f'"{identifier}"'
+
+
+__all__ = ["PostgresAdapter", "SUPPORTED_AGGREGATES", "SUPPORTED_OPERATORS"]

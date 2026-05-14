@@ -87,3 +87,42 @@ def test_table_schema_resource_rejects_missing_table() -> None:
 
     assert response["success"] is False
     assert response["error"] == "Unknown table: missing"
+
+
+def test_create_adapter_defaults_to_sqlite(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("DATABASE_BACKEND", raising=False)
+
+    adapter = mcp_server.create_adapter()
+
+    assert isinstance(adapter, SQLiteAdapter)
+
+
+def test_create_adapter_rejects_unknown_backend(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("DATABASE_BACKEND", "oracle")
+
+    with pytest.raises(
+        mcp_server.ValidationError, match="Unsupported DATABASE_BACKEND"
+    ):
+        mcp_server.create_adapter()
+
+
+def test_create_mcp_supports_auth_token(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("SQLITE_LAB_AUTH_TOKEN", "dev-token")
+
+    server = mcp_server.create_mcp()
+
+    assert server is not None
+
+
+def test_main_requires_auth_for_http(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("SQLITE_LAB_AUTH_TOKEN", raising=False)
+    monkeypatch.setattr(
+        mcp_server,
+        "parse_args",
+        lambda: mcp_server.argparse.Namespace(transport="http"),
+    )
+
+    with pytest.raises(SystemExit, match="SQLITE_LAB_AUTH_TOKEN"):
+        mcp_server.main()

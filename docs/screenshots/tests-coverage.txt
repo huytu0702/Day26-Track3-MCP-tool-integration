@@ -1,0 +1,32 @@
+============================= test session starts =============================
+platform win32 -- Python 3.12.6, pytest-9.0.3, pluggy-1.6.0
+rootdir: F:\vin\Day26-Track3-MCP-tool-integration
+configfile: pyproject.toml
+plugins: anyio-4.13.0, cov-7.1.0
+collected 23 items
+
+implementation\tests\test_db.py ............                             [ 52%]
+implementation\tests\test_server.py ...........                          [100%]
+
+============================== warnings summary ===============================
+.venv\Lib\site-packages\fastmcp\server\auth\providers\jwt.py:12
+  F:\vin\Day26-Track3-MCP-tool-integration\.venv\Lib\site-packages\fastmcp\server\auth\providers\jwt.py:12: AuthlibDeprecationWarning: authlib.jose module is deprecated, please use joserfc instead.
+  It will be compatible before version 2.0.0.
+    from authlib.jose import JsonWebKey, JsonWebToken
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=============================== tests coverage ================================
+_______________ coverage: platform win32, python 3.12.6-final-0 _______________
+
+Name                                  Stmts   Miss  Cover   Missing
+-------------------------------------------------------------------
+implementation\__init__.py                0      0   100%
+implementation\adapters.py               10      0   100%
+implementation\db.py                    139      6    96%   118, 137, 171, 192, 219, 236
+implementation\init_db.py                17      2    88%   71-72
+implementation\mcp_server.py             80     16    80%   22, 46, 70-74, 157-163, 170-171, 174, 178
+implementation\tests\test_db.py          35      0   100%
+implementation\tests\test_server.py      56      0   100%
+-------------------------------------------------------------------
+TOTAL                                   337     24    93%
+======================== 23 passed, 1 warning in 6.60s ========================

@@ -11,6 +11,16 @@ This repository contains a FastMCP + SQLite implementation for the Day 26 Track 
 - [Tool Descriptions](docs/tool-descriptions.md)
 - [Testing Steps](docs/testing-steps.md)
 - [Client Configuration Example](docs/client-configuration.md)
+- [Bonus Features](docs/bonus-features.md)
+
+## Screenshots
+
+Screenshots showing the server in use are stored in [`docs/screenshots/`](docs/screenshots/):
+
+- [MCP Inspector running](docs/screenshots/01-mcp-inspector-running.png)
+- [Verification script output](docs/screenshots/02-verify-server.png)
+- [HTTP auth demo](docs/screenshots/03-http-auth.png)
+- [Tests and coverage](docs/screenshots/04-tests-coverage.png)
 
 ## Quick verification
 

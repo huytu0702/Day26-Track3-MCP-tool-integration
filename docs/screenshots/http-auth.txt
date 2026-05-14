@@ -1,0 +1,2 @@
+Authenticated HTTP ping succeeded
+Unauthenticated HTTP ping was rejected

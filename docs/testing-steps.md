@@ -43,11 +43,24 @@ pytest implementation/tests --cov=implementation --cov-report=term-missing
 Current verified result:
 
 ```text
-19 passed
-coverage: 87%
+23 passed
+coverage: 93%
 ```
 
-## 4. Run lint checks
+## 4. Run HTTP auth verification
+
+```bash
+python -m implementation.verify_http_auth
+```
+
+Expected result:
+
+```text
+Authenticated HTTP ping succeeded
+Unauthenticated HTTP ping was rejected
+```
+
+## 5. Run lint checks
 
 ```bash
 ruff check implementation
@@ -59,7 +72,7 @@ Expected result:
 All checks passed!
 ```
 
-## 5. Run format check
+## 6. Run format check
 
 ```bash
 black --check implementation
@@ -71,7 +84,7 @@ Expected result:
 7 files would be left unchanged.
 ```
 
-## 6. Manual MCP client checks
+## 7. Manual MCP client checks
 
 After configuring the MCP client, verify these calls:
 
@@ -124,7 +137,7 @@ Expected response:
 }
 ```
 
-## 7. Resource checks
+## 8. Resource checks
 
 Verify these resources are readable:
 

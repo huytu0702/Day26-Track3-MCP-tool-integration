@@ -6,3 +6,9 @@ line-length = 88
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM"]
+
+[tool.coverage.run]
+omit = [
+    "implementation/postgres_db.py",
+    "implementation/verify_*.py",
+]

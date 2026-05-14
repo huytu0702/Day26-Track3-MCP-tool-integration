@@ -66,6 +66,24 @@ Useful checks:
 - call `aggregate` on `students`
 - call `search` with `table = "missing"` to confirm safe errors
 
+## HTTP auth client example
+
+Start the server with HTTP auth:
+
+```bash
+export SQLITE_LAB_AUTH_TOKEN="dev-lab-token"
+./.venv/Scripts/python.exe -m implementation.mcp_server --transport http --host 127.0.0.1 --port 8000
+```
+
+Connect with a bearer token:
+
+```python
+from fastmcp import Client
+
+async with Client("http://127.0.0.1:8000/mcp", auth="dev-lab-token") as client:
+    await client.ping()
+```
+
 ## MCP Inspector alternative
 
 Windows Git Bash:

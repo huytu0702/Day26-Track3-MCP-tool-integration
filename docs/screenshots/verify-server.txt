@@ -1,0 +1,237 @@
+
+## Schema resource
+{
+  "success": true,
+  "data": {
+    "courses": [
+      {
+        "name": "id",
+        "type": "INTEGER",
+        "not_null": false,
+        "default": null,
+        "primary_key": true
+      },
+      {
+        "name": "title",
+        "type": "TEXT",
+        "not_null": true,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "department",
+        "type": "TEXT",
+        "not_null": true,
+        "default": null,
+        "primary_key": false
+      }
+    ],
+    "enrollments": [
+      {
+        "name": "id",
+        "type": "INTEGER",
+        "not_null": false,
+        "default": null,
+        "primary_key": true
+      },
+      {
+        "name": "student_id",
+        "type": "INTEGER",
+        "not_null": true,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "course_id",
+        "type": "INTEGER",
+        "not_null": true,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "grade",
+        "type": "REAL",
+        "not_null": true,
+        "default": null,
+        "primary_key": false
+      }
+    ],
+    "students": [
+      {
+        "name": "id",
+        "type": "INTEGER",
+        "not_null": false,
+        "default": null,
+        "primary_key": true
+      },
+      {
+        "name": "name",
+        "type": "TEXT",
+        "not_null": true,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "cohort",
+        "type": "TEXT",
+        "not_null": true,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "email",
+        "type": "TEXT",
+        "not_null": true,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "score",
+        "type": "REAL",
+        "not_null": true,
+        "default": null,
+        "primary_key": false
+      }
+    ]
+  },
+  "error": null,
+  "metadata": {}
+}
+
+## Table schema resource
+{
+  "success": true,
+  "data": [
+    {
+      "name": "id",
+      "type": "INTEGER",
+      "not_null": false,
+      "default": null,
+      "primary_key": true
+    },
+    {
+      "name": "name",
+      "type": "TEXT",
+      "not_null": true,
+      "default": null,
+      "primary_key": false
+    },
+    {
+      "name": "cohort",
+      "type": "TEXT",
+      "not_null": true,
+      "default": null,
+      "primary_key": false
+    },
+    {
+      "name": "email",
+      "type": "TEXT",
+      "not_null": true,
+      "default": null,
+      "primary_key": false
+    },
+    {
+      "name": "score",
+      "type": "REAL",
+      "not_null": true,
+      "default": null,
+      "primary_key": false
+    }
+  ],
+  "error": null,
+  "metadata": {
+    "table": "students"
+  }
+}
+
+## Successful search
+{
+  "success": true,
+  "data": [
+    {
+      "id": 2,
+      "name": "Binh Tran",
+      "score": 91.0
+    },
+    {
+      "id": 1,
+      "name": "An Nguyen",
+      "score": 88.5
+    }
+  ],
+  "error": null,
+  "metadata": {
+    "table": "students",
+    "limit": 10,
+    "offset": 0
+  }
+}
+
+## Successful insert
+{
+  "success": true,
+  "data": {
+    "id": 6,
+    "name": "Minh Dao",
+    "cohort": "D4",
+    "email": "minh.dao@example.edu",
+    "score": 93.25
+  },
+  "error": null,
+  "metadata": {
+    "table": "students"
+  }
+}
+
+## Successful aggregate
+{
+  "success": true,
+  "data": [
+    {
+      "cohort": "A1",
+      "value": 89.75
+    },
+    {
+      "cohort": "B2",
+      "value": 80.5
+    },
+    {
+      "cohort": "C3",
+      "value": 69.5
+    },
+    {
+      "cohort": "D4",
+      "value": 93.25
+    }
+  ],
+  "error": null,
+  "metadata": {
+    "table": "students",
+    "metric": "avg",
+    "group_by": "cohort"
+  }
+}
+
+## Failing bad table
+{
+  "success": false,
+  "data": null,
+  "error": "Unknown table: missing",
+  "metadata": {}
+}
+
+## Failing bad operator
+{
+  "success": false,
+  "data": null,
+  "error": "Unsupported filter operator: raw",
+  "metadata": {}
+}
+
+## Failing bad aggregate
+{
+  "success": false,
+  "data": null,
+  "error": "Unsupported aggregate metric: median",
+  "metadata": {}
+}
